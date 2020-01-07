@@ -81,6 +81,7 @@ def reformatArrays(data, everyN = 20):
         stopI = newlinesToRemove[i+1][0]
         dataList.append(data[startI:stopI])
     # add remaining data after last array
+    dataList.append(', ')
     dataList.append(data[newlinesToRemove[-1][1]:])
     # make in to string
     return ''.join(dataList)
