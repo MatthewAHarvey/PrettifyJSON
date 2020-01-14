@@ -8,6 +8,21 @@ import re
 # with open(fName, 'r', encoding="utf-8") as JSONfile:
 #   data = JSONfile.read()
 
+def fixDuplicateEndingLabVIEWBug(data):
+    duplicateString = '''g":[
+    ]
+}g":[
+    ]
+}'''
+    # print(data[-len(duplicateString):])
+    if(data[-len(duplicateString):] == duplicateString):
+        # print("DUPLICATE")
+        # print(data[-12:])
+        data = data[:-12]
+    # print(data[-20:])
+    return data
+    
+
 def roundDecimalPlaces(data, maxDP=-1):
     floatMatches = list(re.finditer('\d+\.\d+', data))
     dataList = []
@@ -113,7 +128,7 @@ def main(argList):
 
     with open(fName, 'r', encoding="utf-8") as JSONfile:
         data = JSONfile.read()
-
+    data = fixDuplicateEndingLabVIEWBug(data)
     excessFloatZeroesRemovedData = roundDecimalPlaces(data, maxDP)
     result = reformatArrays(excessFloatZeroesRemovedData, everyN)
 
