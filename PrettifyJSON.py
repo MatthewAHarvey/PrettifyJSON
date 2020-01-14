@@ -14,12 +14,8 @@ def fixDuplicateEndingLabVIEWBug(data):
 }g":[
     ]
 }'''
-    # print(data[-len(duplicateString):])
     if(data[-len(duplicateString):] == duplicateString):
-        # print("DUPLICATE")
-        # print(data[-12:])
         data = data[:-12]
-    # print(data[-20:])
     return data
     
 
