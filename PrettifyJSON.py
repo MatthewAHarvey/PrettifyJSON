@@ -9,6 +9,7 @@ import re
 #   data = JSONfile.read()
 
 def fixDuplicateEndingLabVIEWBug(data):
+    """Given an input JSON string, strips the duplicated fragment that a LabVIEW bug is adding to the end of our save files."""
     duplicateString = '''g":[
     ]
 }g":[
@@ -20,6 +21,7 @@ def fixDuplicateEndingLabVIEWBug(data):
     
 
 def roundDecimalPlaces(data, maxDP=-1):
+    """Given an input JSON string, truncates floating point numbers to a maximum number of decimal places, maxDP."""
     floatMatches = list(re.finditer('\d+\.\d+', data))
     dataList = []
     prevEndIndex = 0
@@ -40,62 +42,63 @@ def roundDecimalPlaces(data, maxDP=-1):
     # make in to string
     return ''.join(dataList)
 
-def arrayPositions(data):
+def getArrayPositions(data):
+    """Given a JSON string, returns a list of the indices of the start [ and end ] list brackets."""
     bracketMatches = list(re.finditer('\\[|\\]', data))
-    prevBracket = ''
-    openBracketPositions = []
-    openBracketDuplicates = []
-    closeBracketPositions = []
-    closeBracketDuplicates = []
+    openIndices = []
+    arrayIndices = []
     for match in bracketMatches:
         bracketIndex = match.span()[0]
         bracket = data[bracketIndex]
         if(bracket == '['):
-            openBracketPositions.append(bracketIndex)
-            if(bracket == prevBracket):
-                openBracketDuplicates.append(len(openBracketPositions) - 1)
+            openIndices.append(bracketIndex)
         else:
-            closeBracketPositions.append(bracketIndex)
-            if(bracket == prevBracket):
-                closeBracketDuplicates.append(len(closeBracketPositions) - 1)
-        prevBracket = bracket
-    for i in reversed(openBracketDuplicates):
-        del openBracketPositions[i]
-    for i in reversed(closeBracketDuplicates):
-        del closeBracketPositions[i]
-    return openBracketPositions, closeBracketPositions    
+            latestOpenBracketIndex = openIndices.pop()
+            arrayIndices.append([latestOpenBracketIndex, bracketIndex])
+    return arrayIndices
 
-def reformatArrays(data, everyN = 20):
-    openBracketPositions, closeBracketPositions = arrayPositions(data)
-    newlinesToRemove = []
-    for start, end in zip(openBracketPositions, closeBracketPositions):
-        # find the commas followed by newlines
-        
-        arrayNewlines = list(re.finditer(',\\n +', data[start: end]))
-#         print(len(arrayNewlines))
-        del arrayNewlines[everyN-1::everyN] # keep these ones!
-#         print(len(arrayNewlines))
-        # get the indices of where these are in the data file
-        for newline in arrayNewlines:
-            commaStart = start + newline.span()[0]
-            commaEnd = start + newline.span()[1]
-            newlinesToRemove.append((commaStart, commaEnd))
+def getNumericArrayPositions(data):
+    """Given a JSON string, returns a list of the start and end indices of numeric type lists."""
+    arrayIndices = getArrayPositions(data)
+    numericArrayIndices = []
+    for array in arrayIndices:
+        strToList = eval(data[array[0]:array[1]+1])
+        if len(strToList) > 0:
+            typeOfListEntry = type(strToList[0])
+            if typeOfListEntry != list:
+                numericArrayIndices.append(array)
+    return numericArrayIndices
 
-    # add all data before first array
-    dataList = []
-    dataList.append(data[0:newlinesToRemove[0][0]])
-    for i in range(len(newlinesToRemove) - 1):
-        # add a comma
+    def reformatArrays(data, everyN = 20):
+        """Given a JSON string, reformats arrays so that they are more readable. Instead of one entry per line, multiple entries are displayed per line with a newline added everyN lines."""
+        numericListIndices = getNumericArrayPositions(data)
+        openBracketPositions, closeBracketPositions = arrayPositions(data)
+        newlinesToRemove = []
+        for indices in numericListIndices:
+            start, end = indices
+            # find the commas followed by newlines
+            arrayNewlines = list(re.finditer(',\\n +', data[start: end]))
+            del arrayNewlines[everyN-1::everyN] # keep these ones!
+            # get the indices of where these are in the data file
+            for newline in arrayNewlines:
+                commaStart = start + newline.span()[0]
+                commaEnd = start + newline.span()[1]
+                newlinesToRemove.append((commaStart, commaEnd))
+        # add all data before first array
+        dataList = []
+        dataList.append(data[0:newlinesToRemove[0][0]])
+        for i in range(len(newlinesToRemove) - 1):
+            # add a comma
+            dataList.append(', ')
+            # now append the normal data up to the next comma
+            startI = newlinesToRemove[i][1]
+            stopI = newlinesToRemove[i+1][0]
+            dataList.append(data[startI:stopI])
+        # add remaining data after last array
         dataList.append(', ')
-        # now append the normal data up to the next comma
-        startI = newlinesToRemove[i][1]
-        stopI = newlinesToRemove[i+1][0]
-        dataList.append(data[startI:stopI])
-    # add remaining data after last array
-    dataList.append(', ')
-    dataList.append(data[newlinesToRemove[-1][1]:])
-    # make in to string
-    return ''.join(dataList)
+        dataList.append(data[newlinesToRemove[-1][1]:])
+        # make in to string
+        return ''.join(dataList)
 
 def main(argList):
     # expects:
