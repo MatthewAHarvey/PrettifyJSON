@@ -69,36 +69,35 @@ def getNumericArrayPositions(data):
                 numericArrayIndices.append(array)
     return numericArrayIndices
 
-    def reformatArrays(data, everyN = 20):
-        """Given a JSON string, reformats arrays so that they are more readable. Instead of one entry per line, multiple entries are displayed per line with a newline added everyN lines."""
-        numericListIndices = getNumericArrayPositions(data)
-        openBracketPositions, closeBracketPositions = arrayPositions(data)
-        newlinesToRemove = []
-        for indices in numericListIndices:
-            start, end = indices
-            # find the commas followed by newlines
-            arrayNewlines = list(re.finditer(',\\n +', data[start: end]))
-            del arrayNewlines[everyN-1::everyN] # keep these ones!
-            # get the indices of where these are in the data file
-            for newline in arrayNewlines:
-                commaStart = start + newline.span()[0]
-                commaEnd = start + newline.span()[1]
-                newlinesToRemove.append((commaStart, commaEnd))
-        # add all data before first array
-        dataList = []
-        dataList.append(data[0:newlinesToRemove[0][0]])
-        for i in range(len(newlinesToRemove) - 1):
-            # add a comma
-            dataList.append(', ')
-            # now append the normal data up to the next comma
-            startI = newlinesToRemove[i][1]
-            stopI = newlinesToRemove[i+1][0]
-            dataList.append(data[startI:stopI])
-        # add remaining data after last array
+def reformatArrays(data, everyN = 20):
+    """Given a JSON string, reformats arrays so that they are more readable. Instead of one entry per line, multiple entries are displayed per line with a newline added everyN lines."""
+    numericListIndices = getNumericArrayPositions(data)
+    newlinesToRemove = []
+    for indices in numericListIndices:
+        start, end = indices
+        # find the commas followed by newlines
+        arrayNewlines = list(re.finditer(',\\n +', data[start: end]))
+        del arrayNewlines[everyN-1::everyN] # keep these ones!
+        # get the indices of where these are in the data file
+        for newline in arrayNewlines:
+            commaStart = start + newline.span()[0]
+            commaEnd = start + newline.span()[1]
+            newlinesToRemove.append((commaStart, commaEnd))
+    # add all data before first array
+    dataList = []
+    dataList.append(data[0:newlinesToRemove[0][0]])
+    for i in range(len(newlinesToRemove) - 1):
+        # add a comma
         dataList.append(', ')
-        dataList.append(data[newlinesToRemove[-1][1]:])
-        # make in to string
-        return ''.join(dataList)
+        # now append the normal data up to the next comma
+        startI = newlinesToRemove[i][1]
+        stopI = newlinesToRemove[i+1][0]
+        dataList.append(data[startI:stopI])
+    # add remaining data after last array
+    dataList.append(', ')
+    dataList.append(data[newlinesToRemove[-1][1]:])
+    # make in to string
+    return ''.join(dataList)
 
 def main(argList):
     # expects:
