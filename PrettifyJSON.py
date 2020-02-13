@@ -65,7 +65,7 @@ def getNumericArrayPositions(data):
         strToList = eval(data[array[0]:array[1]+1])
         if len(strToList) > 0:
             typeOfListEntry = type(strToList[0])
-            if typeOfListEntry != list:
+            if typeOfListEntry != list and typeOfListEntry != dict:
                 numericArrayIndices.append(array)
     return numericArrayIndices
 
